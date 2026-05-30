@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+
 import os
 import shutil
 import subprocess
@@ -133,18 +134,22 @@ def main():
         print("Error: El comando 'git' no está instalado o no se encuentra en el PATH.")
         sys.exit(1)
 
-    url_repo = input("Ingresa la URL del repositorio de GitHub: ").strip()
+    # NUEVO: Verificar si se pasó el argumento por CLI, si no, pedirlo por consola
+    if len(sys.argv) > 1:
+        url_repo = sys.argv[1].strip()
+    else:
+        url_repo = input("Ingresa la URL del repositorio de GitHub: ").strip()
+
     if not url_repo:
         print("URL no válida.")
         return
 
-    print("\n[+] Creando entorno temporal...")
+    print(f"\n[+] Repositorio a analizar: {url_repo}")
+    print("[+] Creando entorno temporal...")
     temp_dir = tempfile.mkdtemp(prefix="git_analysis_")
 
     try:
         print(f"[+] Clonando el repositorio en una carpeta temporal...")
-        # NOTA: Quitamos `--bare` porque `git blame` necesita obligatoriamente 
-        # el árbol de archivos físicos para calcular las líneas vigentes.
         subprocess.run(["git", "clone", url_repo, temp_dir], check=True, capture_output=True)
         
         print("[+] Analizando el historial de commits...")
