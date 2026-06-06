@@ -90,55 +90,70 @@ def mostrar_reporte(stats):
         return
 
     # Calcular totales generales para obtener los porcentajes
-    total_commits = 0
-    total_agregadas = 0
-    total_eliminadas = 0
-    total_modificadas_global = 0
-    total_actuales = 0
-    total_caracteres = 0
+    total_commits = sum(d["commits"] for d in stats.values())
+    total_agregadas = sum(d["lineas_agregadas"] for d in stats.values())
+    total_eliminadas = sum(d["lineas_eliminadas"] for d in stats.values())
+    total_modificadas_global = total_agregadas + total_eliminadas
+    total_actuales = sum(d["lineas_actuales"] for d in stats.values())
+    total_caracteres = sum(d["caracteres_actuales"] for d in stats.values())
 
-    for datos in stats.values():
-        total_commits += datos["commits"]
-        total_agregadas += datos["lineas_agregadas"]
-        total_eliminadas += datos["lineas_eliminadas"]
-        total_modificadas_global += (datos["lineas_agregadas"] + datos["lineas_eliminadas"])
-        total_actuales += datos["lineas_actuales"]
-        total_caracteres += datos["caracteres_actuales"]
-
-    # Ajustamos el ancho para dar suficiente espacio a las columnas descriptivas
-    ancho_autor = max(max(len(autor) for autor in stats.keys()), 25)
-    ancho_num = 23 # Se aumentó un poco para que entren bien los nombres de columnas más largos
-    
-    formato_cabecera = f"{{:<{ancho_autor}}} | {{:>{ancho_num}}} | {{:>{ancho_num}}} | {{:>{ancho_num}}} | {{:>{ancho_num}}} | {{:>{ancho_num}}} | {{:>{ancho_num}}}"
-    
     def formatear_miles(valor):
         return f"{valor:,}".replace(",", ".")
 
     def generar_celda(valor, total):
         str_cant = formatear_miles(valor)
         porcentaje = (valor / total * 100) if total > 0 else 0
-        str_porcentaje = f"{porcentaje:>5.1f}"
-        return f"{str_cant} ({str_porcentaje}%)"
+        # CAMBIO: Se removieron los paréntesis y se estructuró como 'numero - porcentaje%'
+        return f"{str_cant} -{porcentaje:>5.1f}%"
 
-    cabecera = formato_cabecera.format("Autor", "Commits (%)", "Líneas + (%)", "Líneas - (%)", "Total Modif. (%)", "Líneas en main (%)", "Caracteres en main (%)")
-    print(f"\n{cabecera}")
-    print("-" * len(cabecera))
+    # Definir los nombres de las columnas (Ajustado el formato visual de la cabecera)
+    cabeceras = [
+        "Autor", "Commits - %", "Líneas + - %", "Líneas - - %", 
+        "Total Modif. - %", "Líneas - %", "Caracteres - %"
+    ]
     
+    # Construir las filas de datos con los textos ya formateados
     autores_ordenados = sorted(stats.items(), key=lambda x: x[1]["commits"], reverse=True)
+    filas_datos = []
     
     for autor, datos in autores_ordenados:
         total_modificadas = datos["lineas_agregadas"] + datos["lineas_eliminadas"]
-        
-        c_str = generar_celda(datos['commits'], total_commits)
-        pos_str = generar_celda(datos['lineas_agregadas'], total_agregadas)
-        neg_str = generar_celda(datos['lineas_eliminadas'], total_eliminadas)
-        tot_str = generar_celda(total_modificadas, total_modificadas_global)
-        act_str = generar_celda(datos['lineas_actuales'], total_actuales)
-        char_str = generar_celda(datos['caracteres_actuales'], total_caracteres)
-        
-        print(formato_cabecera.format(
-            autor, c_str, pos_str, neg_str, tot_str, act_str, char_str
-        ))
+        filas_datos.append([
+            autor,
+            generar_celda(datos['commits'], total_commits),
+            generar_celda(datos['lineas_agregadas'], total_agregadas),
+            generar_celda(datos['lineas_eliminadas'], total_eliminadas),
+            generar_celda(total_modificadas, total_modificadas_global),
+            generar_celda(datos['lineas_actuales'], total_actuales),
+            generar_celda(datos['caracteres_actuales'], total_caracteres)
+        ])
+
+    # Encontrar el ancho máximo dinámico para cada columna de forma individual
+    # Compara la longitud de la cabecera y de todas las celdas de esa columna
+    anchos_columnas = []
+    for i in range(len(cabeceras)):
+        ancho_max = max([len(cabeceras[i])] + [len(fila[i]) for fila in filas_datos])
+        anchos_columnas.append(ancho_max)
+
+    # Construir el string de formato dinámico (Texto alineado a la izquierda, números a la derecha)
+    # Ejemplo: "{:<15} | {:>12} | {:>14} ..."
+    formatos = []
+    for i, ancho in enumerate(anchos_columnas):
+        if i == 0:
+            formatos.append(f"{{:<{ancho}}}") # Autor a la izquierda
+        else:
+            formatos.append(f"{{:>{ancho}}}") # Métricas a la derecha
+    
+    formato_linea = " | ".join(formatos)
+
+    # Imprimir cabecera
+    cabecera_str = formato_linea.format(*cabeceras)
+    print(f"\n{cabecera_str}")
+    print("-" * len(cabecera_str))
+    
+    # Imprimir filas
+    for fila in filas_datos:
+        print(formato_linea.format(*fila))
 
 def limpiar_cache_python():
     """Busca y elimina carpetas __pycache__ en el directorio del script actual"""
