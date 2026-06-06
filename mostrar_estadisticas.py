@@ -83,16 +83,37 @@ def mostrar_reporte(stats):
         print("No se encontraron estadísticas o el repositorio está vacío.")
         return
 
+    # Calcular totales generales para obtener los porcentajes
+    total_commits = 0
+    total_agregadas = 0
+    total_eliminadas = 0
+    total_modificadas_global = 0
+    total_actuales = 0
+
+    for datos in stats.values():
+        total_commits += datos["commits"]
+        total_agregadas += datos["lineas_agregadas"]
+        total_eliminadas += datos["lineas_eliminadas"]
+        total_modificadas_global += (datos["lineas_agregadas"] + datos["lineas_eliminadas"])
+        total_actuales += datos["lineas_actuales"]
+
+    # Ajustamos el ancho para dar suficiente espacio al formato uniforme
     ancho_autor = max(max(len(autor) for autor in stats.keys()), 25)
-    ancho_num = 12
+    ancho_num = 20 
     
-    # Añadimos una columna extra al final para "Líneas Act."
     formato_cabecera = f"{{:<{ancho_autor}}} | {{:>{ancho_num}}} | {{:>{ancho_num}}} | {{:>{ancho_num}}} | {{:>{ancho_num}}} | {{:>{ancho_num}}}"
     
     def formatear_miles(valor):
         return f"{valor:,}".replace(",", ".")
 
-    cabecera = formato_cabecera.format("Autor", "Commits", "Líneas +", "Líneas -", "Total Modif.", "Líneas Act.")
+    def generar_celda(valor, total):
+        str_cant = formatear_miles(valor)
+        porcentaje = (valor / total * 100) if total > 0 else 0
+        # `{:>5.1f}` reserva 5 espacios alineados a la derecha (ej: " 8.3" o "12.5")
+        str_porcentaje = f"{porcentaje:>5.1f}"
+        return f"{str_cant} ({str_porcentaje}%)"
+
+    cabecera = formato_cabecera.format("Autor", "Commits (%)", "Líneas + (%)", "Líneas - (%)", "Total Modif. (%)", "Líneas Act. (%)")
     print(f"\n{cabecera}")
     print("-" * len(cabecera))
     
@@ -101,11 +122,11 @@ def mostrar_reporte(stats):
     for autor, datos in autores_ordenados:
         total_modificadas = datos["lineas_agregadas"] + datos["lineas_eliminadas"]
         
-        c_str = formatear_miles(datos['commits'])
-        pos_str = formatear_miles(datos['lineas_agregadas'])
-        neg_str = formatear_miles(datos['lineas_eliminadas'])
-        tot_str = formatear_miles(total_modificadas)
-        act_str = formatear_miles(datos['lineas_actuales']) # Nueva columna
+        c_str = generar_celda(datos['commits'], total_commits)
+        pos_str = generar_celda(datos['lineas_agregadas'], total_agregadas)
+        neg_str = generar_celda(datos['lineas_eliminadas'], total_eliminadas)
+        tot_str = generar_celda(total_modificadas, total_modificadas_global)
+        act_str = generar_celda(datos['lineas_actuales'], total_actuales)
         
         print(formato_cabecera.format(
             autor, c_str, pos_str, neg_str, tot_str, act_str
@@ -134,7 +155,7 @@ def main():
         print("Error: El comando 'git' no está instalado o no se encuentra en el PATH.")
         sys.exit(1)
 
-    # NUEVO: Verificar si se pasó el argumento por CLI, si no, pedirlo por consola
+    # Verificar si se pasó el argumento por CLI, si no, pedirlo por consola
     if len(sys.argv) > 1:
         url_repo = sys.argv[1].strip()
     else:
