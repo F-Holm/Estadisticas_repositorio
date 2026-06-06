@@ -105,9 +105,9 @@ def mostrar_reporte(stats):
         total_actuales += datos["lineas_actuales"]
         total_caracteres += datos["caracteres_actuales"]
 
-    # Ajustamos el ancho para dar suficiente espacio a la nueva columna
+    # Ajustamos el ancho para dar suficiente espacio a las columnas descriptivas
     ancho_autor = max(max(len(autor) for autor in stats.keys()), 25)
-    ancho_num = 20 
+    ancho_num = 23 # Se aumentó un poco para que entren bien los nombres de columnas más largos
     
     formato_cabecera = f"{{:<{ancho_autor}}} | {{:>{ancho_num}}} | {{:>{ancho_num}}} | {{:>{ancho_num}}} | {{:>{ancho_num}}} | {{:>{ancho_num}}} | {{:>{ancho_num}}}"
     
@@ -120,7 +120,7 @@ def mostrar_reporte(stats):
         str_porcentaje = f"{porcentaje:>5.1f}"
         return f"{str_cant} ({str_porcentaje}%)"
 
-    cabecera = formato_cabecera.format("Autor", "Commits (%)", "Líneas + (%)", "Líneas - (%)", "Total Modif. (%)", "Líneas Act. (%)", "Chars Act. (%)")
+    cabecera = formato_cabecera.format("Autor", "Commits (%)", "Líneas + (%)", "Líneas - (%)", "Total Modif. (%)", "Líneas en main (%)", "Caracteres en main (%)")
     print(f"\n{cabecera}")
     print("-" * len(cabecera))
     
